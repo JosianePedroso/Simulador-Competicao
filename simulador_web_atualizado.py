@@ -152,4 +152,3 @@ if uploaded_file:
             )
         else:
             st.warning("⚠️ Nenhum resultado calculado. Verifique os dados.")
-
