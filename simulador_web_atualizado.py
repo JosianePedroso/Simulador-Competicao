@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -42,19 +41,55 @@ def calcular_IID4(dap, d_medio):
     ASq = area_seccional_quadratica(d_medio)
     return round((AS_i ** 2) / (ASq ** 2), 4) if ASq != 0 else np.nan
 
+# Criar o arquivo modelo na memória (para download)
+def criar_modelo_excel():
+    df_modelo = pd.DataFrame(columns=['codigo_parcela', 'dap', 'altura', 'especie'])
+    output = BytesIO()
+    df_modelo.to_excel(output, index=False)
+    return output.getvalue()
+
 # Início do Streamlit
 st.title("🌳 Simulador de Índices de Competição Florestal")
+
+# Botão para baixar modelo de planilha
+modelo_excel = criar_modelo_excel()
+st.download_button(
+    label="📥 Baixe o modelo da planilha Excel",
+    data=modelo_excel,
+    file_name="modelo_planilha.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+st.markdown("""
+### Instruções para a planilha Excel
+
+- O arquivo deve conter as seguintes colunas exatas (sem acentos, minúsculas):
+    - `codigo_parcela`
+    - `dap`
+    - `altura`
+    - `especie`
+- Qualquer variação pode causar erro no processamento.
+""")
 
 uploaded_file = st.file_uploader("📂 Envie sua planilha Excel (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
+    st.write("Colunas encontradas no arquivo:", list(df.columns))
+
+    # Normaliza nomes das colunas para minúsculas e sem espaços
     df.columns = df.columns.str.strip().str.lower()
-    df.rename(columns={'código da parcela': 'codigo_parcela'}, inplace=True)
 
-    st.success("✅ Planilha carregada com sucesso!")
-    st.write(df)
+    colunas_esperadas = {'codigo_parcela', 'dap', 'altura', 'especie'}
+    colunas_encontradas = set(df.columns)
 
+    faltando = colunas_esperadas - colunas_encontradas
+    if faltando:
+        st.error(f"⚠️ Atenção! As seguintes colunas obrigatórias estão faltando: {', '.join(faltando)}")
+        st.stop()
+
+    st.success("✅ Todas as colunas obrigatórias foram encontradas.")
+    
     parcelas = df['codigo_parcela'].unique()
     parcela_escolhida = st.selectbox("🔹 Selecione a parcela:", parcelas)
 
@@ -117,3 +152,4 @@ if uploaded_file:
             )
         else:
             st.warning("⚠️ Nenhum resultado calculado. Verifique os dados.")
+
