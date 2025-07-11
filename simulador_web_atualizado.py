@@ -49,7 +49,7 @@ def criar_modelo_excel():
     return output.getvalue()
 
 # Início do Streamlit
-st.title("🌳 Simulador de Índices de Competição Florestal")
+st.title("Simulador de Índices de Competição Florestal")
 
 # Botão para baixar modelo de planilha
 modelo_excel = criar_modelo_excel()
