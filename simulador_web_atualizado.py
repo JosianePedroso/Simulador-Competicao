@@ -23,9 +23,9 @@ def calcular_IC2(altura, altura_media):
     return round(altura / altura_media, 4) if altura_media != 0 else np.nan
 
 def calcular_IC3(dap, d_medio, altura, altura_media):
-    iid1 = calcular_IC1(dap, d_medio)
-    iid2 = calcular_IC2(altura, altura_media)
-    return round(iid1 * iid2, 4)
+    ic1 = calcular_IC1(dap, d_medio)
+    ic2 = calcular_IC2(altura, altura_media)
+    return round(ic1 * ic2, 4)
 
 def area_seccional(dap):
     return (3.1416 * dap ** 2) / 40000
@@ -38,17 +38,17 @@ def calcular_IC4(dap, d_medio):
     ASq = area_seccional_quadratica(d_medio)
     return round((AS_i ** 2) / (ASq ** 2), 4) if ASq != 0 else np.nan
 
-# Criar o arquivo modelo na memória (para download)
+# Criar o arquivo modelo
 def criar_modelo_excel():
-    df_modelo = pd.DataFrame(columns=['Codigo_Parcela', 'DAP', 'Altura', 'Espécie'])
+    df_modelo = pd.DataFrame(columns=['codigo_parcela', 'ano_medicao', 'dap', 'altura', 'especie'])
     output = BytesIO()
     df_modelo.to_excel(output, index=False)
     return output.getvalue()
 
 # Início do Streamlit
-st.title("Simulador de Índices de Competição Florestal")
+st.title("🌳 Simulador de Índices de Competição Florestal")
 
-# Botão para baixar modelo de planilha
+# Baixar modelo de planilha
 modelo_excel = criar_modelo_excel()
 st.download_button(
     label="📥 Baixe o modelo da planilha Excel",
@@ -60,35 +60,31 @@ st.download_button(
 st.markdown("""
 ### Instruções para a planilha Excel
 
-- O arquivo deve conter as seguintes colunas exatas para a identificação dos dados:
+- Deve conter as seguintes colunas exatas:
     - Codigo_Parcela
-    - Ano_Medição
+    - Ano_Medicao
     - DAP
     - Altura
-    - Especie
-    
-- Qualquer variação pode causar erro no processamento.
+    - Espécie
 """)
 
 uploaded_file = st.file_uploader("📂 Envie sua planilha Excel (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
-    st.write("Colunas encontradas no arquivo:", list(df.columns))
-
     df.columns = df.columns.str.strip().str.lower()
 
-    colunas_esperadas = {'Codigo_Parcela', 'Ano_Medição', 'DAP', 'Altura', 'Espécie'}
+    colunas_esperadas = {'codigo_parcela', 'ano_medicao', 'dap', 'altura', 'especie'}
     colunas_encontradas = set(df.columns)
 
     faltando = colunas_esperadas - colunas_encontradas
     if faltando:
-        st.error(f"Atenção! As seguintes colunas obrigatórias estão faltando: {', '.join(faltando)}")
+        st.error(f"⚠️ Faltam colunas obrigatórias: {', '.join(faltando)}")
         st.stop()
 
     st.success("✅ Todas as colunas obrigatórias foram encontradas.")
     
-    parcelas = df['Codigo_Parcela'].unique()
+    parcelas = df['codigo_parcela'].unique()
     parcela_escolhida = st.selectbox("🔹 Selecione a parcela:", parcelas)
 
     opcao = st.selectbox("📌 Escolha o índice de competição:", [
@@ -96,26 +92,27 @@ if uploaded_file:
     ])
 
     if st.button("▶️ Calcular"):
-        parcela = df[df["Codigo_Parcela"] == parcela_escolhida].copy()
-        parcela["Número da Árvore"] = range(1, len(parcela) + 1)
+        parcela = df[df["codigo_parcela"] == parcela_escolhida].copy()
+        parcela = parcela.reset_index(drop=True)
+        parcela["n_arvore"] = range(1, len(parcela) + 1)
 
         resultados = []
         for i, row in parcela.iterrows():
-            dap = row.get("DAP")
-            altura = row.get("Altura")
-            especie = row.get("Espécie", "Desconhecida")
-            num_arvore = row["Número da Árvore"]
+            dap = row["dap"]
+            altura = row["altura"]
+            especie = row.get("especie", "Desconhecida")
+            n_arvore = row["n_arvore"]
 
             if pd.isnull(dap) or pd.isnull(altura):
                 continue
 
-            # Remove a árvore atual para calcular as médias
-            parcela_sem_atual = parcela[parcela["Número da Árvore"] != num_arvore]
-            d_medio = parcela_sem_atual["dap"].mean()
-            altura_media = parcela_sem_atual["altura"].mean()
+            # Exclui a árvore atual para calcular médias
+            sem_objeto = parcela[parcela["n_arvore"] != n_arvore]
+            d_medio = sem_objeto["dap"].mean()
+            altura_media = sem_objeto["altura"].mean()
 
             resultado = {
-                "Número da Árvore": num_arvore,
+                "Árvore": n_arvore,
                 "Código Parcela": parcela_escolhida,
                 "Espécie": especie,
                 "DAP": dap,
