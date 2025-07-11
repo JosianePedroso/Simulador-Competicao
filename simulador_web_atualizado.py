@@ -64,10 +64,10 @@ st.markdown("""
 ### Instruções para a planilha Excel
 
 - O arquivo deve conter as seguintes colunas exatas (sem acentos, minúsculas):
-    - codigo_parcela
-    - dap
-    - altura
-    - especie
+    - Codigo_Parcela
+    - Dap
+    - Altura
+    - Especie
 - Qualquer variação pode causar erro no processamento.
 """)
 
