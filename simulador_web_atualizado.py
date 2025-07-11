@@ -10,24 +10,21 @@ def calcular_BAL_individual(dap):
 def calcular_BAI(dap):
     return round((3.1416 * (dap / 2) ** 2) / 10000, 4)
 
-def calcular_IC1(dap, altura):
-    return round(dap / altura, 4)
-
-def calcular_IDD_BAL(df, dap_i):
+def calcular_BAL(df, dap_i):
     soma_BAL_maiores = sum(
         calcular_BAL_individual(dap) for dap in df['dap'] if dap > dap_i
     )
     return round(soma_BAL_maiores, 4)
 
-def calcular_IID1(dap, d_medio):
+def calcular_IC1(dap, d_medio):
     return round((dap ** 2) / (d_medio ** 2), 4) if d_medio != 0 else np.nan
 
-def calcular_IID2(altura, altura_media):
+def calcular_IC2(altura, altura_media):
     return round(altura / altura_media, 4) if altura_media != 0 else np.nan
 
-def calcular_IID3(dap, d_medio, altura, altura_media):
-    iid1 = calcular_IID1(dap, d_medio)
-    iid2 = calcular_IID2(altura, altura_media)
+def calcular_IC3(dap, d_medio, altura, altura_media):
+    iid1 = calcular_IC1(dap, d_medio)
+    iid2 = calcular_IC2(altura, altura_media)
     return round(iid1 * iid2, 4)
 
 def area_seccional(dap):
@@ -36,14 +33,14 @@ def area_seccional(dap):
 def area_seccional_quadratica(d_medio):
     return (3.1416 * d_medio ** 2) / 40000
 
-def calcular_IID4(dap, d_medio):
+def calcular_IC4(dap, d_medio):
     AS_i = area_seccional(dap)
     ASq = area_seccional_quadratica(d_medio)
     return round((AS_i ** 2) / (ASq ** 2), 4) if ASq != 0 else np.nan
 
 # Criar o arquivo modelo na memória (para download)
 def criar_modelo_excel():
-    df_modelo = pd.DataFrame(columns=['codigo_parcela', 'dap', 'altura', 'especie'])
+    df_modelo = pd.DataFrame(columns=['Codigo_Parcela', 'DAP', 'Altura', 'Espécie'])
     output = BytesIO()
     df_modelo.to_excel(output, index=False)
     return output.getvalue()
@@ -63,11 +60,13 @@ st.download_button(
 st.markdown("""
 ### Instruções para a planilha Excel
 
-- O arquivo deve conter as seguintes colunas exatas (sem acentos, minúsculas):
+- O arquivo deve conter as seguintes colunas exatas para a identificação dos dados:
     - Codigo_Parcela
-    - Dap
+    - Ano_Medição
+    - DAP
     - Altura
     - Especie
+    
 - Qualquer variação pode causar erro no processamento.
 """)
 
@@ -79,32 +78,32 @@ if uploaded_file:
 
     df.columns = df.columns.str.strip().str.lower()
 
-    colunas_esperadas = {'codigo_parcela', 'dap', 'altura', 'especie'}
+    colunas_esperadas = {'Codigo_Parcela', 'Ano_Medição', 'DAP', 'Altura', 'Espécie'}
     colunas_encontradas = set(df.columns)
 
     faltando = colunas_esperadas - colunas_encontradas
     if faltando:
-        st.error(f"⚠️ Atenção! As seguintes colunas obrigatórias estão faltando: {', '.join(faltando)}")
+        st.error(f"Atenção! As seguintes colunas obrigatórias estão faltando: {', '.join(faltando)}")
         st.stop()
 
     st.success("✅ Todas as colunas obrigatórias foram encontradas.")
     
-    parcelas = df['codigo_parcela'].unique()
+    parcelas = df['Codigo_Parcela'].unique()
     parcela_escolhida = st.selectbox("🔹 Selecione a parcela:", parcelas)
 
     opcao = st.selectbox("📌 Escolha o índice de competição:", [
-        "IDD-1", "IDD-2", "IDD-3", "IDD-4", "IDD-BAL", "IDD-BAI"
+        "IC1", "IC2", "IC3", "IC4", "BAL", "BAI"
     ])
 
     if st.button("▶️ Calcular"):
-        parcela = df[df["codigo_parcela"] == parcela_escolhida].copy()
+        parcela = df[df["Codigo_Parcela"] == parcela_escolhida].copy()
         parcela["Número da Árvore"] = range(1, len(parcela) + 1)
 
         resultados = []
         for i, row in parcela.iterrows():
-            dap = row.get("dap")
-            altura = row.get("altura")
-            especie = row.get("especie", "Desconhecida")
+            dap = row.get("DAP")
+            altura = row.get("Altura")
+            especie = row.get("Espécie", "Desconhecida")
             num_arvore = row["Número da Árvore"]
 
             if pd.isnull(dap) or pd.isnull(altura):
@@ -123,18 +122,18 @@ if uploaded_file:
                 "Altura": altura
             }
 
-            if opcao == "IDD-1":
-                resultado["IDD-1"] = calcular_IID1(dap, d_medio)
-            elif opcao == "IDD-2":
-                resultado["IDD-2"] = calcular_IID2(altura, altura_media)
-            elif opcao == "IDD-3":
-                resultado["IDD-3"] = calcular_IID3(dap, d_medio, altura, altura_media)
-            elif opcao == "IDD-4":
-                resultado["IDD-4"] = calcular_IID4(dap, d_medio)
-            elif opcao == "IDD-BAL":
-                resultado["IDD-BAL"] = calcular_IDD_BAL(parcela, dap)
-            elif opcao == "IDD-BAI":
-                resultado["IDD-BAI"] = calcular_BAI(dap)
+            if opcao == "IC1":
+                resultado["IC1"] = calcular_IC1(dap, d_medio)
+            elif opcao == "IC2":
+                resultado["IC2"] = calcular_IC2(altura, altura_media)
+            elif opcao == "IC3":
+                resultado["IC3"] = calcular_IC3(dap, d_medio, altura, altura_media)
+            elif opcao == "IC4":
+                resultado["IC4"] = calcular_IC4(dap, d_medio)
+            elif opcao == "BAL":
+                resultado["BAL"] = calcular_BAL(parcela, dap)
+            elif opcao == "BAI":
+                resultado["BAI"] = calcular_BAI(dap)
 
             resultados.append(resultado)
 
