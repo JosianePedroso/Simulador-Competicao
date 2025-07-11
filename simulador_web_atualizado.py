@@ -64,10 +64,10 @@ st.markdown("""
 ### Instruções para a planilha Excel
 
 - O arquivo deve conter as seguintes colunas exatas (sem acentos, minúsculas):
-    - `codigo_parcela`
-    - `dap`
-    - `altura`
-    - `especie`
+    - codigo_parcela
+    - dap
+    - altura
+    - especie
 - Qualquer variação pode causar erro no processamento.
 """)
 
@@ -77,7 +77,6 @@ if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     st.write("Colunas encontradas no arquivo:", list(df.columns))
 
-    # Normaliza nomes das colunas para minúsculas e sem espaços
     df.columns = df.columns.str.strip().str.lower()
 
     colunas_esperadas = {'codigo_parcela', 'dap', 'altura', 'especie'}
@@ -101,11 +100,8 @@ if uploaded_file:
         parcela = df[df["codigo_parcela"] == parcela_escolhida].copy()
         parcela["Número da Árvore"] = range(1, len(parcela) + 1)
 
-        d_medio = parcela["dap"].mean()
-        altura_media = parcela["altura"].mean()
-
         resultados = []
-        for _, row in parcela.iterrows():
+        for i, row in parcela.iterrows():
             dap = row.get("dap")
             altura = row.get("altura")
             especie = row.get("especie", "Desconhecida")
@@ -113,6 +109,11 @@ if uploaded_file:
 
             if pd.isnull(dap) or pd.isnull(altura):
                 continue
+
+            # Remove a árvore atual para calcular as médias
+            parcela_sem_atual = parcela[parcela["Número da Árvore"] != num_arvore]
+            d_medio = parcela_sem_atual["dap"].mean()
+            altura_media = parcela_sem_atual["altura"].mean()
 
             resultado = {
                 "Número da Árvore": num_arvore,
