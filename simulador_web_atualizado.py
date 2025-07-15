@@ -18,8 +18,11 @@ def calcular_BAI(dap, daps_vizinhos):
     Gq = (np.pi * Q**2) / 40000
     return round(Gi / Gq, 4) if Gq != 0 else np.nan
 
-def calcular_IC1(dap, altura):
-    return round(dap / altura, 4) if altura != 0 else np.nan
+def calcular_IC1(dap_i, daps_vizinhos):
+    if len(daps_vizinhos) == 0:
+        return np.nan
+    media_dap = np.mean(daps_vizinhos)
+    return round((dap_i ** 2) / (media_dap ** 2), 4) if media_dap != 0 else np.nan
 
 def calcular_IC2(altura, altura_media):
     return round(altura / altura_media, 4) if altura_media != 0 else np.nan
@@ -109,7 +112,7 @@ if uploaded_file:
             daps_vizinhos = vizinhos['DAP'].tolist()
             altura_vizinhos = vizinhos['Altura'].tolist()
 
-            ic1 = calcular_IC1(dap, altura)
+            ic1 = calcular_IC1(dap, daps_vizinhos)
             ic2 = calcular_IC2(altura, np.mean(altura_vizinhos))
             ic3 = calcular_IC3(ic1, ic2)
             ic4 = calcular_IC4(dap, altura, media_dap_altura)
