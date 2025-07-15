@@ -8,7 +8,7 @@ def calcular_BAL_individual(dap):
     return (np.pi * (dap ** 2)) / 40000
 
 def calcular_BAL(df, DAP_i):
-    return round(sum(calcular_BAL_individual(dap) for dap in df['DAP'] if dap > dap_i), 4)
+    return round(sum(calcular_BAL_individual(dap) for dap in df['DAP'] if dap > DAP_i), 4)
 
 def calcular_BAI(dap, daps_vizinhos):
     Gi = calcular_BAL_individual(dap)
