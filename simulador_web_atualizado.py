@@ -10,10 +10,6 @@ def calcular_BAL_individual(dap):
 def calcular_BAL(df, DAP_i):
     return round(sum(calcular_BAL_individual(dap) for dap in df['DAP'] if dap > DAP_i), 4)
 
-def calcular_BAL_ha(df, DAP_i, area_parcela):
-    bal = calcular_BAL(df, DAP_i)
-    return round(bal * (10000 / area_parcela), 4) if area_parcela else np.nan
-
 def calcular_BAI(dap, daps_vizinhos):
     Gi = calcular_BAL_individual(dap)
     if len(daps_vizinhos) == 0:
@@ -94,18 +90,18 @@ if uploaded_file:
     anos = df[df['Codigo_Parcela'] == parcela_escolhida]['Ano_Medicao'].unique()
     ano_escolhido = st.selectbox("📅 Selecione o ano de medição:", anos)
 
-    opcao = st.selectbox("📌 Escolha o índice de competição:", ["IC1", "IC2", "IC3", "IC4", "BAL", "BAL_ha", "BAI"])
+    opcao = st.selectbox("📌 Escolha o índice de competição:", ["IC1", "IC2", "IC3", "IC4", "BAL", "BAI"])
 
     if st.button("▶️ Calcular"):
         parcela = df[(df['Codigo_Parcela'] == parcela_escolhida) & (df['Ano_Medicao'] == ano_escolhido)].copy()
         parcela = parcela.reset_index(drop=True)
         parcela["Número da Árvore"] = parcela.index + 1
 
+        area_parcela = parcela['Area_parcela_m2'].iloc[0]  # Supõe-se que seja constante por parcela
+
         media_dap = parcela['DAP'].mean()
         media_altura = parcela['Altura'].mean()
         media_dap_altura = (parcela['DAP'] / parcela['Altura']).mean()
-
-        area_parcela = parcela['Area_parcela_m2'].iloc[0] if 'Area_parcela_m2' in parcela.columns else None
 
         resultados = []
         for i, row in parcela.iterrows():
@@ -114,7 +110,6 @@ if uploaded_file:
             especie = row['Especie']
             num_arvore = row['Número da Árvore']
 
-            # Remove árvore atual das médias de vizinhança
             vizinhos = parcela[parcela['Número da Árvore'] != num_arvore]
             daps_vizinhos = vizinhos['DAP'].tolist()
             altura_vizinhos = vizinhos['Altura'].tolist()
@@ -124,7 +119,7 @@ if uploaded_file:
             ic3 = calcular_IC3(ic1, ic2)
             ic4 = calcular_IC4(dap, altura, media_dap_altura)
             bal = calcular_BAL(vizinhos, dap)
-            bal_ha = calcular_BAL_ha(vizinhos, dap, area_parcela)
+            bal_ha = round(bal * (10000 / area_parcela), 4)
             bai = calcular_BAI(dap, daps_vizinhos)
 
             resultado = {
@@ -146,7 +141,6 @@ if uploaded_file:
                 resultado["IC4"] = ic4
             elif opcao == "BAL":
                 resultado["BAL"] = bal
-            elif opcao == "BAL_ha":
                 resultado["BAL_ha"] = bal_ha
             elif opcao == "BAI":
                 resultado["BAI"] = bai
