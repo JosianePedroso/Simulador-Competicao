@@ -30,10 +30,24 @@ def calcular_IC2(altura, altura_media):
 def calcular_IC3(ic1, ic2):
     return round(ic1 * ic2, 4) if not np.isnan(ic1) and not np.isnan(ic2) else np.nan
 
-def calcular_IC4(dap, altura, media_dap_altura):
-    if altura == 0 or media_dap_altura == 0:
+def calcular_IC4(dap_i, altura_i, vizinhos):
+    if altura_i == 0:
         return np.nan
-    return round((dap / altura) / media_dap_altura, 4)
+
+    # Ignorar vizinhos com DAP ou altura igual a 0
+    vizinhos_validos = vizinhos[(vizinhos['DAP'] > 0) & (vizinhos['Altura'] > 0)]
+
+    if len(vizinhos_validos) == 0:
+        return np.nan
+
+    media_H_sobre_D = (vizinhos_validos['Altura'] / vizinhos_validos['DAP']).mean()
+
+    if media_H_sobre_D == 0 or pd.isna(media_H_sobre_D):
+        return np.nan
+
+    numerador = (dap_i ** 2) / altura_i
+    return round(numerador / media_H_sobre_D, 4)
+
 
 # Criar modelo Excel para download
 def criar_modelo_excel():
@@ -115,7 +129,7 @@ if uploaded_file:
             ic1 = calcular_IC1(dap, daps_vizinhos)
             ic2 = calcular_IC2(altura, np.mean(altura_vizinhos))
             ic3 = calcular_IC3(ic1, ic2)
-            ic4 = calcular_IC4(dap, altura, media_dap_altura)
+            ic4 = calcular_IC4(dap, altura, vizinhos)
             bal = calcular_BAL(vizinhos, dap)
             bai = calcular_BAI(dap, daps_vizinhos)
 
