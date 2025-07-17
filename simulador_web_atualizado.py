@@ -34,19 +34,21 @@ def calcular_IC4(dap_i, altura_i, vizinhos):
     if altura_i == 0:
         return np.nan
 
-    # Ignorar vizinhos com DAP ou altura igual a 0
     vizinhos_validos = vizinhos[(vizinhos['DAP'] > 0) & (vizinhos['Altura'] > 0)]
 
     if len(vizinhos_validos) == 0:
         return np.nan
 
-    media_H_sobre_D = (vizinhos_validos['Altura'] / vizinhos_validos['DAP']).mean()
+    media_H = vizinhos_validos['Altura'].mean()
+    media_D = vizinhos_validos['DAP'].mean()
 
-    if media_H_sobre_D == 0 or pd.isna(media_H_sobre_D):
+    if media_D == 0 or pd.isna(media_H) or pd.isna(media_D):
         return np.nan
 
     numerador = (dap_i ** 2) / altura_i
-    return round(numerador / media_H_sobre_D, 4)
+    denominador = media_H / media_D
+
+    return round(numerador / denominador, 4)
 
 
 # Criar modelo Excel para download
