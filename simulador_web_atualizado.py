@@ -10,6 +10,10 @@ def calcular_BAL_individual(dap):
 def calcular_BAL(df, DAP_i):
     return round(sum(calcular_BAL_individual(dap) for dap in df['DAP'] if dap > DAP_i), 4)
 
+def calcular_BAL_ha(df, DAP_i, area_parcela):
+    bal = calcular_BAL(df, DAP_i)
+    return round(bal * (10000 / area_parcela), 4) if area_parcela else np.nan
+
 def calcular_BAI(dap, daps_vizinhos):
     Gi = calcular_BAL_individual(dap)
     if len(daps_vizinhos) == 0:
@@ -30,30 +34,14 @@ def calcular_IC2(altura, altura_media):
 def calcular_IC3(ic1, ic2):
     return round(ic1 * ic2, 4) if not np.isnan(ic1) and not np.isnan(ic2) else np.nan
 
-def calcular_IC4(dap_i, altura_i, vizinhos):
-    if altura_i == 0:
+def calcular_IC4(dap, altura, media_dap_altura):
+    if altura == 0 or media_dap_altura == 0:
         return np.nan
-
-    vizinhos_validos = vizinhos[(vizinhos['DAP'] > 0) & (vizinhos['Altura'] > 0)]
-
-    if len(vizinhos_validos) == 0:
-        return np.nan
-
-    media_H = vizinhos_validos['Altura'].mean()
-    media_D = vizinhos_validos['DAP'].mean()
-
-    if media_D == 0 or pd.isna(media_H) or pd.isna(media_D):
-        return np.nan
-
-    numerador = (dap_i ** 2) / altura_i
-    denominador = media_H / media_D
-
-    return round(numerador / denominador, 4)
-
+    return round((dap / altura) / media_dap_altura, 4)
 
 # Criar modelo Excel para download
 def criar_modelo_excel():
-    df_modelo = pd.DataFrame(columns=['Codigo_Parcela', 'Ano_Medicao', 'DAP', 'Altura', 'Especie'])
+    df_modelo = pd.DataFrame(columns=['Codigo_Parcela', 'Ano_Medicao', 'DAP', 'Altura', 'Especie', 'Area_parcela_m2'])
     output = BytesIO()
     df_modelo.to_excel(output, index=False)
     return output.getvalue()
@@ -77,6 +65,7 @@ st.markdown("""
   - DAP
   - Altura
   - Especie
+  - Area_parcela_m2
 - Árvores com DAP ou Altura igual a 0 serão desconsideradas dos cálculos.
 """)
 
@@ -88,7 +77,7 @@ if uploaded_file:
 
     df.columns = df.columns.str.strip()
 
-    colunas_esperadas = {'Codigo_Parcela', 'Ano_Medicao', 'DAP', 'Altura', 'Especie'}
+    colunas_esperadas = {'Codigo_Parcela', 'Ano_Medicao', 'DAP', 'Altura', 'Especie', 'Area_parcela_m2'}
     colunas_encontradas = set(df.columns)
 
     if not colunas_esperadas.issubset(colunas_encontradas):
@@ -105,7 +94,7 @@ if uploaded_file:
     anos = df[df['Codigo_Parcela'] == parcela_escolhida]['Ano_Medicao'].unique()
     ano_escolhido = st.selectbox("📅 Selecione o ano de medição:", anos)
 
-    opcao = st.selectbox("📌 Escolha o índice de competição:", ["IC1", "IC2", "IC3", "IC4", "BAL", "BAI"])
+    opcao = st.selectbox("📌 Escolha o índice de competição:", ["IC1", "IC2", "IC3", "IC4", "BAL", "BAL_ha", "BAI"])
 
     if st.button("▶️ Calcular"):
         parcela = df[(df['Codigo_Parcela'] == parcela_escolhida) & (df['Ano_Medicao'] == ano_escolhido)].copy()
@@ -115,6 +104,8 @@ if uploaded_file:
         media_dap = parcela['DAP'].mean()
         media_altura = parcela['Altura'].mean()
         media_dap_altura = (parcela['DAP'] / parcela['Altura']).mean()
+
+        area_parcela = parcela['Area_parcela_m2'].iloc[0] if 'Area_parcela_m2' in parcela.columns else None
 
         resultados = []
         for i, row in parcela.iterrows():
@@ -131,8 +122,9 @@ if uploaded_file:
             ic1 = calcular_IC1(dap, daps_vizinhos)
             ic2 = calcular_IC2(altura, np.mean(altura_vizinhos))
             ic3 = calcular_IC3(ic1, ic2)
-            ic4 = calcular_IC4(dap, altura, vizinhos)
+            ic4 = calcular_IC4(dap, altura, media_dap_altura)
             bal = calcular_BAL(vizinhos, dap)
+            bal_ha = calcular_BAL_ha(vizinhos, dap, area_parcela)
             bai = calcular_BAI(dap, daps_vizinhos)
 
             resultado = {
@@ -154,6 +146,8 @@ if uploaded_file:
                 resultado["IC4"] = ic4
             elif opcao == "BAL":
                 resultado["BAL"] = bal
+            elif opcao == "BAL_ha":
+                resultado["BAL_ha"] = bal_ha
             elif opcao == "BAI":
                 resultado["BAI"] = bai
 
